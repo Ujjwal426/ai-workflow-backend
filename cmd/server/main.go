@@ -58,13 +58,15 @@ func main() {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 
+	// Handle migration: drop tables if they exist to avoid type conversion issues
+	// This is necessary because the schema may have been created with wrong types
+	db.Migrator().DropTable(&models.ExecutionStep{})
+	db.Migrator().DropTable(&models.WorkflowExecution{})
+	db.Migrator().DropTable(&models.Workflow{})
+
 	if err := db.AutoMigrate(&models.Workflow{}, &models.WorkflowExecution{}, &models.ExecutionStep{}); err != nil {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
-
-	// Fix foreign key constraint for cascade delete (temporary fix until proper migration)
-	db.Exec("ALTER TABLE workflow_executions DROP CONSTRAINT IF EXISTS fk_workflows_workflow_executions")
-	db.Exec("ALTER TABLE workflow_executions ADD CONSTRAINT fk_workflows_workflow_executions FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE")
 
 	// Initialize repositories
 	workflowRepo := repository.NewWorkflowRepository(db)
