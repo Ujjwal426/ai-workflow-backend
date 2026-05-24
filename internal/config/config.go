@@ -68,7 +68,7 @@ func Load() (Config, error) {
 			Password:        os.Getenv("DB_PASSWORD"),
 			Name:            os.Getenv("DB_NAME"),
 			Port:            getEnv("DB_PORT", "5432"),
-			SSLMode:         getEnv("DB_SSLMODE", "disable"),
+			SSLMode:         getEnv("DB_SSLMODE", "require"),
 			MaxOpenConns:    getIntEnv("DB_MAX_OPEN_CONNS", 25),
 			MaxIdleConns:    getIntEnv("DB_MAX_IDLE_CONNS", 10),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", time.Hour),
