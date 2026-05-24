@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"ai-workflow-builder/internal/execution"
 	"ai-workflow-builder/internal/http/response"
@@ -11,6 +10,7 @@ import (
 	"ai-workflow-builder/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // ExecutionHandler handles workflow execution requests
@@ -44,14 +44,12 @@ func (h *ExecutionHandler) ExecuteWorkflow(c *fiber.Ctx) error {
 	// Check if this is a direct execution (has nodes array)
 	if _, hasNodes := rawBody["nodes"]; hasNodes {
 		// Handle workflowId that might be a string
-		workflowID := uint(0)
+		workflowID := uuid.Nil
 		if wid, ok := rawBody["workflowId"]; ok {
 			switch v := wid.(type) {
-			case float64:
-				workflowID = uint(v)
 			case string:
-				if parsed, err := strconv.ParseUint(v, 10, 64); err == nil {
-					workflowID = uint(parsed)
+				if parsed, err := uuid.Parse(v); err == nil {
+					workflowID = parsed
 				}
 			}
 		}
@@ -112,12 +110,12 @@ func (h *ExecutionHandler) GetExecution(c *fiber.Ctx) error {
 // ListExecutions retrieves all executions for a specific workflow
 func (h *ExecutionHandler) ListExecutions(c *fiber.Ctx) error {
 	workflowIDParam := c.Params("workflowId")
-	workflowID, err := strconv.ParseUint(workflowIDParam, 10, 64)
-	if err != nil || workflowID == 0 {
+	workflowID, err := uuid.Parse(workflowIDParam)
+	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid workflow id")
 	}
 
-	executions, err := h.executionRepo.FindByWorkflowID(c.UserContext(), uint(workflowID))
+	executions, err := h.executionRepo.FindByWorkflowID(c.UserContext(), workflowID)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "failed to list executions")
 	}
@@ -148,12 +146,12 @@ func (h *ExecutionHandler) ExecuteStep(c *fiber.Ctx) error {
 	}
 
 	stepIDParam := c.Params("stepId")
-	stepID, err := strconv.ParseUint(stepIDParam, 10, 64)
-	if err != nil || stepID == 0 {
+	stepID, err := uuid.Parse(stepIDParam)
+	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid step id")
 	}
 
-	step, err := h.executionSvc.ExecuteStep(c.UserContext(), executionID, uint(stepID))
+	step, err := h.executionSvc.ExecuteStep(c.UserContext(), executionID, stepID)
 	if err != nil {
 		return h.handleServiceError(c, err)
 	}
@@ -188,12 +186,11 @@ func (h *ExecutionHandler) handleServiceError(c *fiber.Ctx, err error) error {
 	}
 }
 
-func parseID(c *fiber.Ctx) (uint, error) {
+func parseID(c *fiber.Ctx) (uuid.UUID, error) {
 	rawID := c.Params("id")
-	id, err := strconv.ParseUint(rawID, 10, 64)
-	if err != nil || id == 0 {
-		return 0, fmt.Errorf("invalid id")
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid id")
 	}
-
-	return uint(id), nil
+	return id, nil
 }

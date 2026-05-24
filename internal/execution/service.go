@@ -13,6 +13,7 @@ import (
 	"ai-workflow-builder/internal/service"
 	"ai-workflow-builder/internal/websocket"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 )
 
@@ -148,8 +149,8 @@ func (s *Service) executeWorkflowGraphWithBroadcast(ctx context.Context, executi
 // executeNodeRecursiveWithBroadcast recursively executes nodes with websocket broadcasting
 func (s *Service) executeNodeRecursiveWithBroadcast(
 	ctx context.Context,
-	executionID uint,
-	workflowID uint,
+	executionID uuid.UUID,
+	workflowID uuid.UUID,
 	currentNode models.NodeConfig,
 	nodeMap map[string]models.NodeConfig,
 	edgeMap map[string][]string,
@@ -224,7 +225,7 @@ func (s *Service) executeNodeRecursiveWithBroadcast(
 }
 
 // executeNodeWithBroadcast executes a single node with websocket broadcasting
-func (s *Service) executeNodeWithBroadcast(ctx context.Context, executionID uint, workflowID uint, node models.NodeConfig, inputData map[string]interface{}, order int) (models.ExecutionStep, error) {
+func (s *Service) executeNodeWithBroadcast(ctx context.Context, executionID uuid.UUID, workflowID uuid.UUID, node models.NodeConfig, inputData map[string]interface{}, order int) (models.ExecutionStep, error) {
 	// Get node executor
 	nodeType := models.NodeType(node.Type)
 	executor, err := s.nodeRegistry.Get(nodeType)
@@ -305,7 +306,7 @@ func (s *Service) executeNodeWithBroadcast(ctx context.Context, executionID uint
 }
 
 // ExecuteWorkflow executes a workflow by ID (implements service.ExecutionService interface)
-func (s *Service) ExecuteWorkflow(ctx context.Context, workflowID uint, inputData map[string]interface{}) (models.WorkflowExecution, error) {
+func (s *Service) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, inputData map[string]interface{}) (models.WorkflowExecution, error) {
 	// Get workflow
 	workflow, err := s.workflowRepo.FindByID(ctx, workflowID)
 	if err != nil {
@@ -343,17 +344,17 @@ func (s *Service) ExecuteWorkflowDirect(ctx context.Context, input service.Direc
 }
 
 // GetExecution retrieves an execution by ID
-func (s *Service) GetExecution(ctx context.Context, id uint) (models.WorkflowExecution, error) {
+func (s *Service) GetExecution(ctx context.Context, id uuid.UUID) (models.WorkflowExecution, error) {
 	return s.executionRepo.FindByID(ctx, id)
 }
 
 // ListExecutions lists all executions for a workflow
-func (s *Service) ListExecutions(ctx context.Context, workflowID uint) ([]models.WorkflowExecution, error) {
+func (s *Service) ListExecutions(ctx context.Context, workflowID uuid.UUID) ([]models.WorkflowExecution, error) {
 	return s.executionRepo.FindByWorkflowID(ctx, workflowID)
 }
 
 // ExecuteStep executes a single execution step
-func (s *Service) ExecuteStep(ctx context.Context, executionID uint, stepID uint) (models.ExecutionStep, error) {
+func (s *Service) ExecuteStep(ctx context.Context, executionID uuid.UUID, stepID uuid.UUID) (models.ExecutionStep, error) {
 	// Get execution
 	execution, err := s.executionRepo.FindByID(ctx, executionID)
 	if err != nil {
@@ -397,12 +398,12 @@ func (s *Service) ExecuteStep(ctx context.Context, executionID uint, stepID uint
 }
 
 // GetExecutionSteps retrieves all steps for an execution
-func (s *Service) GetExecutionSteps(ctx context.Context, executionID uint) ([]models.ExecutionStep, error) {
+func (s *Service) GetExecutionSteps(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error) {
 	return s.executionRepo.FindStepsByExecutionID(ctx, executionID)
 }
 
 // CancelExecution cancels a running execution
-func (s *Service) CancelExecution(ctx context.Context, id uint) error {
+func (s *Service) CancelExecution(ctx context.Context, id uuid.UUID) error {
 	execution, err := s.executionRepo.FindByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to find execution: %w", err)

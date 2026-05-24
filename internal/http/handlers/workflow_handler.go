@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
 
 	"ai-workflow-builder/internal/http/response"
 	"ai-workflow-builder/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type WorkflowHandler struct {
@@ -43,7 +42,7 @@ func (h *WorkflowHandler) List(c *fiber.Ctx) error {
 }
 
 func (h *WorkflowHandler) Get(c *fiber.Ctx) error {
-	id, err := parseID(c)
+	id, err := parseUUID(c)
 	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid workflow id")
 	}
@@ -57,7 +56,7 @@ func (h *WorkflowHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *WorkflowHandler) Update(c *fiber.Ctx) error {
-	id, err := parseID(c)
+	id, err := parseUUID(c)
 	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid workflow id")
 	}
@@ -76,7 +75,7 @@ func (h *WorkflowHandler) Update(c *fiber.Ctx) error {
 }
 
 func (h *WorkflowHandler) Delete(c *fiber.Ctx) error {
-	id, err := parseID(c)
+	id, err := parseUUID(c)
 	if err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "invalid workflow id")
 	}
@@ -113,12 +112,11 @@ func (h *WorkflowHandler) handleServiceError(c *fiber.Ctx, err error) error {
 	}
 }
 
-func parseID(c *fiber.Ctx) (uint, error) {
+func parseUUID(c *fiber.Ctx) (uuid.UUID, error) {
 	rawID := c.Params("id")
-	id, err := strconv.ParseUint(rawID, 10, 64)
-	if err != nil || id == 0 {
-		return 0, fmt.Errorf("invalid id")
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		return uuid.Nil, err
 	}
-
-	return uint(id), nil
+	return id, nil
 }

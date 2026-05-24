@@ -10,6 +10,7 @@ import (
 	"ai-workflow-builder/internal/models"
 	"ai-workflow-builder/internal/repository"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -22,9 +23,9 @@ var (
 type WorkflowService interface {
 	Create(ctx context.Context, input WorkflowInput) (models.Workflow, error)
 	List(ctx context.Context) ([]models.Workflow, error)
-	Get(ctx context.Context, id uint) (models.Workflow, error)
-	Update(ctx context.Context, id uint, input WorkflowInput) (models.Workflow, error)
-	Delete(ctx context.Context, id uint) error
+	Get(ctx context.Context, id uuid.UUID) (models.Workflow, error)
+	Update(ctx context.Context, id uuid.UUID, input WorkflowInput) (models.Workflow, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 	ValidateWorkflow(ctx context.Context, workflowJSON datatypes.JSON) (models.WorkflowValidation, error)
 }
 
@@ -64,7 +65,7 @@ func (s *workflowService) List(ctx context.Context) ([]models.Workflow, error) {
 	return s.repo.FindAll(ctx)
 }
 
-func (s *workflowService) Get(ctx context.Context, id uint) (models.Workflow, error) {
+func (s *workflowService) Get(ctx context.Context, id uuid.UUID) (models.Workflow, error) {
 	workflow, err := s.repo.FindByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.Workflow{}, ErrWorkflowNotFound
@@ -73,7 +74,7 @@ func (s *workflowService) Get(ctx context.Context, id uint) (models.Workflow, er
 	return workflow, err
 }
 
-func (s *workflowService) Update(ctx context.Context, id uint, input WorkflowInput) (models.Workflow, error) {
+func (s *workflowService) Update(ctx context.Context, id uuid.UUID, input WorkflowInput) (models.Workflow, error) {
 	if err := validateWorkflowInput(input); err != nil {
 		return models.Workflow{}, err
 	}
@@ -94,7 +95,7 @@ func (s *workflowService) Update(ctx context.Context, id uint, input WorkflowInp
 	return workflow, nil
 }
 
-func (s *workflowService) Delete(ctx context.Context, id uint) error {
+func (s *workflowService) Delete(ctx context.Context, id uuid.UUID) error {
 	if _, err := s.Get(ctx, id); err != nil {
 		return err
 	}

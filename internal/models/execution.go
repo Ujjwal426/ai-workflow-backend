@@ -3,7 +3,9 @@ package models
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 // ExecutionStatus represents the status of a workflow execution
@@ -48,8 +50,8 @@ const (
 
 // WorkflowExecution represents a single execution of a workflow
 type WorkflowExecution struct {
-	ID             uint            `json:"id" gorm:"primaryKey"`
-	WorkflowID     uint            `json:"workflowId" gorm:"not null;index"`
+	ID             uuid.UUID       `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	WorkflowID     uuid.UUID       `json:"workflowId" gorm:"type:uuid;not null;index"`
 	Status         ExecutionStatus `json:"status" gorm:"type:varchar(50);not null;default:'pending'"`
 	InputData      datatypes.JSON  `json:"inputData" gorm:"type:jsonb;default:'{}'"`
 	OutputData     datatypes.JSON  `json:"outputData" gorm:"type:jsonb;default:'{}'"`
@@ -62,10 +64,17 @@ type WorkflowExecution struct {
 	UpdatedAt      time.Time       `json:"updatedAt"`
 }
 
+func (e *WorkflowExecution) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
+	}
+	return nil
+}
+
 // ExecutionStep represents a single step/node execution within a workflow execution
 type ExecutionStep struct {
-	ID             uint           `json:"id" gorm:"primaryKey"`
-	ExecutionID    uint           `json:"executionId" gorm:"not null;index"`
+	ID             uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ExecutionID    uuid.UUID      `json:"executionId" gorm:"type:uuid;not null;index"`
 	NodeID         string         `json:"nodeId" gorm:"type:varchar(255);not null"`
 	NodeType       NodeType       `json:"nodeType" gorm:"type:varchar(50);not null"`
 	Status         StepStatus     `json:"status" gorm:"type:varchar(50);not null;default:'pending'"`
@@ -77,6 +86,13 @@ type ExecutionStep struct {
 	ExecutionOrder int            `json:"executionOrder" gorm:"not null"`
 	CreatedAt      time.Time      `json:"createdAt"`
 	UpdatedAt      time.Time      `json:"updatedAt"`
+}
+
+func (s *ExecutionStep) BeforeCreate(tx *gorm.DB) error {
+	if s.ID == uuid.Nil {
+		s.ID = uuid.New()
+	}
+	return nil
 }
 
 // NodeConfig represents the configuration for a specific node
