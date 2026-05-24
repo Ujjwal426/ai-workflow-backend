@@ -10,6 +10,7 @@ import (
 	"ai-workflow-builder/internal/models"
 	"ai-workflow-builder/internal/repository"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 )
 
@@ -116,7 +117,7 @@ func (e *Engine) executeWorkflowGraph(ctx context.Context, execution *models.Wor
 // executeNodeRecursive recursively executes nodes following edges
 func (e *Engine) executeNodeRecursive(
 	ctx context.Context,
-	executionID uint,
+	executionID uuid.UUID,
 	currentNode models.NodeConfig,
 	nodeMap map[string]models.NodeConfig,
 	edgeMap map[string][]string,
@@ -238,7 +239,7 @@ func (e *Engine) validateWorkflowStructure(workflowNodes models.WorkflowNodes) e
 }
 
 // executeNode executes a single node
-func (e *Engine) executeNode(ctx context.Context, executionID uint, node models.NodeConfig, inputData map[string]interface{}, order int) (models.ExecutionStep, error) {
+func (e *Engine) executeNode(ctx context.Context, executionID uuid.UUID, node models.NodeConfig, inputData map[string]interface{}, order int) (models.ExecutionStep, error) {
 	// Get node executor
 	nodeType := models.NodeType(node.Type)
 	executor, err := e.nodeRegistry.Get(nodeType)
@@ -319,7 +320,7 @@ func (e *Engine) executeNode(ctx context.Context, executionID uint, node models.
 }
 
 // ExecuteStep executes a single step (for step-by-step execution)
-func (e *Engine) ExecuteStep(ctx context.Context, executionID uint, stepID uint) (models.ExecutionStep, error) {
+func (e *Engine) ExecuteStep(ctx context.Context, executionID uuid.UUID, stepID uuid.UUID) (models.ExecutionStep, error) {
 	// Get the step
 	step, err := e.getStepByID(ctx, stepID)
 	if err != nil {
@@ -371,6 +372,6 @@ func (e *Engine) ExecuteStep(ctx context.Context, executionID uint, stepID uint)
 }
 
 // getStepByID is a helper to get a step by ID
-func (e *Engine) getStepByID(ctx context.Context, stepID uint) (models.ExecutionStep, error) {
+func (e *Engine) getStepByID(ctx context.Context, stepID uuid.UUID) (models.ExecutionStep, error) {
 	return e.executionRepo.FindStepByID(ctx, stepID)
 }

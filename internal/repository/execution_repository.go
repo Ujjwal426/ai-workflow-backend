@@ -5,21 +5,22 @@ import (
 
 	"ai-workflow-builder/internal/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type ExecutionRepository interface {
 	CreateExecution(ctx context.Context, execution *models.WorkflowExecution) error
-	FindByID(ctx context.Context, id uint) (models.WorkflowExecution, error)
-	FindByWorkflowID(ctx context.Context, workflowID uint) ([]models.WorkflowExecution, error)
+	FindByID(ctx context.Context, id uuid.UUID) (models.WorkflowExecution, error)
+	FindByWorkflowID(ctx context.Context, workflowID uuid.UUID) ([]models.WorkflowExecution, error)
 	UpdateExecution(ctx context.Context, execution *models.WorkflowExecution) error
-	DeleteExecution(ctx context.Context, id uint) error
-	
+	DeleteExecution(ctx context.Context, id uuid.UUID) error
+
 	CreateStep(ctx context.Context, step *models.ExecutionStep) error
-	FindStepsByExecutionID(ctx context.Context, executionID uint) ([]models.ExecutionStep, error)
-	FindStepByID(ctx context.Context, stepID uint) (models.ExecutionStep, error)
+	FindStepsByExecutionID(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error)
+	FindStepByID(ctx context.Context, stepID uuid.UUID) (models.ExecutionStep, error)
 	UpdateStep(ctx context.Context, step *models.ExecutionStep) error
-	FindPendingSteps(ctx context.Context, executionID uint) ([]models.ExecutionStep, error)
+	FindPendingSteps(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error)
 }
 
 type executionRepository struct {
@@ -34,16 +35,16 @@ func (r *executionRepository) CreateExecution(ctx context.Context, execution *mo
 	return r.db.WithContext(ctx).Create(execution).Error
 }
 
-func (r *executionRepository) FindByID(ctx context.Context, id uint) (models.WorkflowExecution, error) {
+func (r *executionRepository) FindByID(ctx context.Context, id uuid.UUID) (models.WorkflowExecution, error) {
 	var execution models.WorkflowExecution
 	err := r.db.WithContext(ctx).
 		Preload("ExecutionSteps").
 		Preload("Workflow").
-		First(&execution, id).Error
+		First(&execution, "id = ?", id).Error
 	return execution, err
 }
 
-func (r *executionRepository) FindByWorkflowID(ctx context.Context, workflowID uint) ([]models.WorkflowExecution, error) {
+func (r *executionRepository) FindByWorkflowID(ctx context.Context, workflowID uuid.UUID) ([]models.WorkflowExecution, error) {
 	var executions []models.WorkflowExecution
 	err := r.db.WithContext(ctx).
 		Where("workflow_id = ?", workflowID).
@@ -57,15 +58,15 @@ func (r *executionRepository) UpdateExecution(ctx context.Context, execution *mo
 	return r.db.WithContext(ctx).Save(execution).Error
 }
 
-func (r *executionRepository) DeleteExecution(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&models.WorkflowExecution{}, id).Error
+func (r *executionRepository) DeleteExecution(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&models.WorkflowExecution{}, "id = ?", id).Error
 }
 
 func (r *executionRepository) CreateStep(ctx context.Context, step *models.ExecutionStep) error {
 	return r.db.WithContext(ctx).Create(step).Error
 }
 
-func (r *executionRepository) FindStepsByExecutionID(ctx context.Context, executionID uint) ([]models.ExecutionStep, error) {
+func (r *executionRepository) FindStepsByExecutionID(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error) {
 	var steps []models.ExecutionStep
 	err := r.db.WithContext(ctx).
 		Where("execution_id = ?", executionID).
@@ -74,9 +75,9 @@ func (r *executionRepository) FindStepsByExecutionID(ctx context.Context, execut
 	return steps, err
 }
 
-func (r *executionRepository) FindStepByID(ctx context.Context, stepID uint) (models.ExecutionStep, error) {
+func (r *executionRepository) FindStepByID(ctx context.Context, stepID uuid.UUID) (models.ExecutionStep, error) {
 	var step models.ExecutionStep
-	err := r.db.WithContext(ctx).First(&step, stepID).Error
+	err := r.db.WithContext(ctx).First(&step, "id = ?", stepID).Error
 	return step, err
 }
 
@@ -84,7 +85,7 @@ func (r *executionRepository) UpdateStep(ctx context.Context, step *models.Execu
 	return r.db.WithContext(ctx).Save(step).Error
 }
 
-func (r *executionRepository) FindPendingSteps(ctx context.Context, executionID uint) ([]models.ExecutionStep, error) {
+func (r *executionRepository) FindPendingSteps(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error) {
 	var steps []models.ExecutionStep
 	err := r.db.WithContext(ctx).
 		Where("execution_id = ? AND status = ?", executionID, models.StepStatusPending).

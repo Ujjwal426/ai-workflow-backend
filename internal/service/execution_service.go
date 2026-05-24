@@ -11,6 +11,7 @@ import (
 	"ai-workflow-builder/internal/models"
 	"ai-workflow-builder/internal/repository"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,13 +21,13 @@ var (
 )
 
 type ExecutionService interface {
-	ExecuteWorkflow(ctx context.Context, workflowID uint, inputData map[string]interface{}) (models.WorkflowExecution, error)
+	ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, inputData map[string]interface{}) (models.WorkflowExecution, error)
 	ExecuteWorkflowDirect(ctx context.Context, executionInput DirectExecutionInput) (models.WorkflowExecution, error)
-	GetExecution(ctx context.Context, id uint) (models.WorkflowExecution, error)
-	ListExecutions(ctx context.Context, workflowID uint) ([]models.WorkflowExecution, error)
-	ExecuteStep(ctx context.Context, executionID uint, stepID uint) (models.ExecutionStep, error)
-	GetExecutionSteps(ctx context.Context, executionID uint) ([]models.ExecutionStep, error)
-	CancelExecution(ctx context.Context, id uint) error
+	GetExecution(ctx context.Context, id uuid.UUID) (models.WorkflowExecution, error)
+	ListExecutions(ctx context.Context, workflowID uuid.UUID) ([]models.WorkflowExecution, error)
+	ExecuteStep(ctx context.Context, executionID uuid.UUID, stepID uuid.UUID) (models.ExecutionStep, error)
+	GetExecutionSteps(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error)
+	CancelExecution(ctx context.Context, id uuid.UUID) error
 }
 
 type executionService struct {
@@ -36,12 +37,12 @@ type executionService struct {
 }
 
 type ExecutionInput struct {
-	WorkflowID uint                   `json:"workflowId"`
+	WorkflowID uuid.UUID              `json:"workflowId"`
 	InputData  map[string]interface{} `json:"inputData"`
 }
 
 type DirectExecutionInput struct {
-	WorkflowID uint                   `json:"workflowId"`
+	WorkflowID uuid.UUID              `json:"workflowId"`
 	Nodes      []models.NodeConfig    `json:"nodes"`
 	Edges      []models.EdgeConfig    `json:"edges"`
 	InputData  map[string]interface{} `json:"inputData"`
@@ -59,9 +60,9 @@ func NewExecutionService(
 	}
 }
 
-func (s *executionService) ExecuteWorkflow(ctx context.Context, workflowID uint, inputData map[string]interface{}) (models.WorkflowExecution, error) {
+func (s *executionService) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, inputData map[string]interface{}) (models.WorkflowExecution, error) {
 	// Validate input
-	if workflowID == 0 {
+	if workflowID == uuid.Nil {
 		return models.WorkflowExecution{}, ErrInvalidExecution
 	}
 
@@ -100,7 +101,6 @@ func (s *executionService) ExecuteWorkflowDirect(ctx context.Context, input Dire
 	// Create a temporary workflow object for execution
 	workflow := models.Workflow{
 		ID: input.WorkflowID,
-		// We'll construct the workflow JSON from the provided nodes and edges
 	}
 
 	// Convert nodes and edges to workflow JSON
@@ -125,7 +125,7 @@ func (s *executionService) ExecuteWorkflowDirect(ctx context.Context, input Dire
 	return execution, nil
 }
 
-func (s *executionService) GetExecution(ctx context.Context, id uint) (models.WorkflowExecution, error) {
+func (s *executionService) GetExecution(ctx context.Context, id uuid.UUID) (models.WorkflowExecution, error) {
 	execution, err := s.executionRepo.FindByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.WorkflowExecution{}, ErrExecutionNotFound
@@ -134,16 +134,16 @@ func (s *executionService) GetExecution(ctx context.Context, id uint) (models.Wo
 	return execution, err
 }
 
-func (s *executionService) ListExecutions(ctx context.Context, workflowID uint) ([]models.WorkflowExecution, error) {
-	if workflowID == 0 {
+func (s *executionService) ListExecutions(ctx context.Context, workflowID uuid.UUID) ([]models.WorkflowExecution, error) {
+	if workflowID == uuid.Nil {
 		return nil, ErrInvalidExecution
 	}
 
 	return s.executionRepo.FindByWorkflowID(ctx, workflowID)
 }
 
-func (s *executionService) ExecuteStep(ctx context.Context, executionID uint, stepID uint) (models.ExecutionStep, error) {
-	if executionID == 0 || stepID == 0 {
+func (s *executionService) ExecuteStep(ctx context.Context, executionID uuid.UUID, stepID uuid.UUID) (models.ExecutionStep, error) {
+	if executionID == uuid.Nil || stepID == uuid.Nil {
 		return models.ExecutionStep{}, ErrInvalidExecution
 	}
 
@@ -162,16 +162,16 @@ func (s *executionService) ExecuteStep(ctx context.Context, executionID uint, st
 	return step, nil
 }
 
-func (s *executionService) GetExecutionSteps(ctx context.Context, executionID uint) ([]models.ExecutionStep, error) {
-	if executionID == 0 {
+func (s *executionService) GetExecutionSteps(ctx context.Context, executionID uuid.UUID) ([]models.ExecutionStep, error) {
+	if executionID == uuid.Nil {
 		return nil, ErrInvalidExecution
 	}
 
 	return s.executionRepo.FindStepsByExecutionID(ctx, executionID)
 }
 
-func (s *executionService) CancelExecution(ctx context.Context, id uint) error {
-	if id == 0 {
+func (s *executionService) CancelExecution(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
 		return ErrInvalidExecution
 	}
 

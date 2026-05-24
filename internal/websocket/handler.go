@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"github.com/google/uuid"
 )
 
 // Handler handles websocket connections
@@ -25,7 +26,7 @@ func NewHandler(hub *Hub) *Handler {
 func (h *Handler) HandleWebSocket(c *fiber.Ctx) error {
 	// Extract workflow ID from params
 	workflowIDStr := c.Params("workflowId")
-	workflowID, err := strconv.ParseUint(workflowIDStr, 10, 64)
+	workflowID, err := uuid.Parse(workflowIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid workflow ID",
@@ -37,7 +38,7 @@ func (h *Handler) HandleWebSocket(c *fiber.Ctx) error {
 		// Create client with Fiber websocket connection
 		client := &Client{
 			ID:         generateClientID(),
-			WorkflowID: uint(workflowID),
+			WorkflowID: workflowID,
 			Conn:       &FiberConnAdapter{Conn: wsConn},
 			Send:       make(chan []byte, 256),
 			Hub:        h.Hub,
@@ -46,7 +47,7 @@ func (h *Handler) HandleWebSocket(c *fiber.Ctx) error {
 		// Register client
 		h.Hub.register <- client
 
-		log.Printf("WebSocket client connected: %s for workflow %d", client.ID, client.WorkflowID)
+		log.Printf("WebSocket client connected: %s for workflow %s", client.ID, client.WorkflowID)
 
 		// Start write pump
 		go client.WritePump()
