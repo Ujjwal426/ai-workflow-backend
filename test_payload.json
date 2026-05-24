@@ -1,0 +1,138 @@
+{
+    "workflowId": 5,
+    "nodes": [
+        {
+            "id": "node-e2d0d136-3ae9-458c-a174-c22b7f048ee8",
+            "type": "startNode",
+            "position": {
+                "x": 80,
+                "y": 160
+            },
+            "data": {
+                "title": "Start",
+                "description": "Workflow entry point.",
+                "status": "idle",
+                "config": {}
+            },
+            "width": 171,
+            "height": 130,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 80,
+                "y": 160
+            },
+            "dragging": false
+        },
+        {
+            "id": "node-7993bb15-625e-4672-b37d-f447a2c6adfe",
+            "type": "delayNode",
+            "position": {
+                "x": 360,
+                "y": 200
+            },
+            "data": {
+                "title": "Delay",
+                "description": "Pause the workflow before continuing.",
+                "status": "idle",
+                "config": {
+                    "duration": 2,
+                    "unit": "seconds"
+                }
+            },
+            "width": 279,
+            "height": 130,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 360,
+                "y": 200
+            },
+            "dragging": false
+        },
+        {
+            "id": "node-ecca5f9d-3a64-4e9b-8200-3b197310cfcf",
+            "type": "endNode",
+            "position": {
+                "x": 720,
+                "y": 160
+            },
+            "data": {
+                "title": "End",
+                "description": "Workflow completion point.",
+                "status": "idle",
+                "config": {}
+            },
+            "width": 209,
+            "height": 130,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 720,
+                "y": 160
+            },
+            "dragging": false
+        }
+    ],
+    "edges": [
+        {
+            "type": "smoothstep",
+            "animated": true,
+            "label": "Next",
+            "markerEnd": {
+                "type": "arrowclosed"
+            },
+            "style": {
+                "strokeWidth": 2
+            },
+            "labelStyle": {
+                "fill": "#334155",
+                "fontSize": 12,
+                "fontWeight": 600
+            },
+            "labelBgStyle": {
+                "fill": "#ffffff"
+            },
+            "labelBgPadding": [
+                8,
+                4
+            ],
+            "labelBgBorderRadius": 6,
+            "source": "node-e2d0d136-3ae9-458c-a174-c22b7f048ee8",
+            "sourceHandle": null,
+            "target": "node-7993bb15-625e-4672-b37d-f447a2c6adfe",
+            "targetHandle": null,
+            "reconnectable": true,
+            "id": "reactflow__edge-node-e2d0d136-3ae9-458c-a174-c22b7f048ee8-node-7993bb15-625e-4672-b37d-f447a2c6adfe",
+            "selected": false
+        },
+        {
+            "type": "smoothstep",
+            "animated": true,
+            "label": "Next",
+            "markerEnd": {
+                "type": "arrowclosed"
+            },
+            "style": {
+                "strokeWidth": 2
+            },
+            "labelStyle": {
+                "fill": "#334155",
+                "fontSize": 12,
+                "fontWeight": 600
+            },
+            "labelBgStyle": {
+                "fill": "#ffffff"
+            },
+            "labelBgPadding": [
+                8,
+                4
+            ],
+            "labelBgBorderRadius": 6,
+            "source": "node-7993bb15-625e-4672-b37d-f447a2c6adfe",
+            "sourceHandle": null,
+            "target": "node-ecca5f9d-3a64-4e9b-8200-3b197310cfcf",
+            "targetHandle": null,
+            "reconnectable": true,
+            "id": "reactflow__edge-node-7993bb15-625e-4672-b37d-f447a2c6adfe-node-ecca5f9d-3a64-4e9b-8200-3b197310cfcf",
+            "selected": false
+        }
+    ]
+}

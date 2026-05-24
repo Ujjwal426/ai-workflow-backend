@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Execution Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .disconnected {
+            background-color: #f44336;
+            color: white;
+        }
+        .log {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        .node-running {
+            color: #2196F3;
+        }
+        .node-success {
+            color: #4CAF50;
+        }
+        .node-error {
+            color: #f44336;
+        }
+        .execution-log {
+            color: #666;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .connect-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .disconnect-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .execute-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Workflow Execution Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <div>
+        <label>Workflow ID:</label>
+        <input type="number" id="workflowId" value="5" />
+        <button onclick="connect()" class="connect-btn">Connect WebSocket</button>
+        <button onclick="disconnect()" class="disconnect-btn">Disconnect</button>
+    </div>
+    
+    <div>
+        <button onclick="executeWorkflow()" class="execute-btn">Execute Workflow</button>
+    </div>
+    
+    <h2>Event Log</h2>
+    <div id="log" class="log"></div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connect() {
+            const workflowId = document.getElementById('workflowId').value;
+            const wsUrl = `ws://localhost:8000/ws/executions/${workflowId}`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    updateStatus('connected');
+                    addLog('WebSocket connected to workflow ' + workflowId);
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                };
+                
+                ws.onclose = function() {
+                    updateStatus('disconnected');
+                    addLog('WebSocket disconnected');
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    addLog('WebSocket error: ' + error);
+                };
+            } catch (error) {
+                console.error('Connection error:', error);
+                addLog('Connection error: ' + error);
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function updateStatus(status) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + status;
+            statusDiv.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        function addLog(message, className = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + className;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function handleEvent(event) {
+            switch (event.type) {
+                case 'NODE_RUNNING':
+                    addLog(`Node ${event.nodeId} is running`, 'node-running');
+                    break;
+                case 'NODE_SUCCESS':
+                    addLog(`Node ${event.nodeId} completed successfully`, 'node-success');
+                    if (event.data) {
+                        addLog(`  Data: ${JSON.stringify(event.data)}`);
+                    }
+                    break;
+                case 'NODE_ERROR':
+                    addLog(`Node ${event.nodeId} failed: ${event.message}`, 'node-error');
+                    break;
+                case 'EXECUTION_LOG':
+                    addLog(event.message, 'execution-log');
+                    break;
+                case 'EXECUTION_START':
+                    addLog(`Execution started #${event.data.executionId}`, 'execution-log');
+                    break;
+                case 'EXECUTION_COMPLETE':
+                    addLog(`Execution completed #${event.data.executionId}`, 'node-success');
+                    if (event.data.outputData) {
+                        addLog(`  Final output: ${JSON.stringify(event.data.outputData)}`);
+                    }
+                    break;
+                case 'EXECUTION_FAILED':
+                    addLog(`Execution failed #${event.data.executionId}: ${event.message}`, 'node-error');
+                    break;
+                default:
+                    addLog(`Unknown event: ${event.type}`);
+            }
+        }
+
+        async function executeWorkflow() {
+            const workflowId = document.getElementById('workflowId').value;
+            const testPayload = {
+                "workflowId": parseInt(workflowId),
+                "nodes": [
+                    {
+                        "id": "start-node",
+                        "type": "startNode",
+                        "data": {
+                            "title": "Start",
+                            "description": "Workflow entry point",
+                            "config": {}
+                        }
+                    },
+                    {
+                        "id": "delay-node",
+                        "type": "delayNode",
+                        "data": {
+                            "title": "Delay",
+                            "description": "Pause execution",
+                            "config": {
+                                "duration": 3,
+                                "unit": "seconds"
+                            }
+                        }
+                    },
+                    {
+                        "id": "http-node",
+                        "type": "httpNode",
+                        "data": {
+                            "title": "HTTP Request",
+                            "description": "Make HTTP request",
+                            "config": {
+                                "url": "https://httpbin.org/post",
+                                "method": "POST"
+                            }
+                        }
+                    },
+                    {
+                        "id": "end-node",
+                        "type": "endNode",
+                        "data": {
+                            "title": "End",
+                            "description": "Workflow completion",
+                            "config": {}
+                        }
+                    }
+                ],
+                "edges": [
+                    {
+                        "id": "edge-1",
+                        "source": "start-node",
+                        "target": "delay-node"
+                    },
+                    {
+                        "id": "edge-2",
+                        "source": "delay-node",
+                        "target": "http-node"
+                    },
+                    {
+                        "id": "edge-3",
+                        "source": "http-node",
+                        "target": "end-node"
+                    }
+                ],
+                "inputData": {
+                    "test": "data"
+                }
+            };
+
+            try {
+                addLog('Starting workflow execution...', 'execution-log');
+                const response = await fetch('http://localhost:8000/api/executions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    addLog(`Execution created: #${result.id}`, 'node-success');
+                } else {
+                    addLog(`Execution failed: ${result.error}`, 'node-error');
+                }
+            } catch (error) {
+                addLog(`Execution error: ${error}`, 'node-error');
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            addLog('Page loaded. Click "Connect WebSocket" to start.');
+        };
+    </script>
+</body>
+</html>
