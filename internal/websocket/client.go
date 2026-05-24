@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -25,7 +27,7 @@ type Connection interface {
 // Client represents a websocket client
 type Client struct {
 	ID         string
-	WorkflowID uint
+	WorkflowID uuid.UUID
 	Conn       Connection
 	Send       chan []byte
 	Hub        *Hub
@@ -38,7 +40,7 @@ type Hub struct {
 	register        chan *Client
 	unregister      chan *Client
 	broadcast       chan []byte
-	workflowClients map[uint][]*Client // workflowID -> clients
+	workflowClients map[uuid.UUID][]*Client // workflowID -> clients
 	mu              sync.RWMutex
 }
 
@@ -49,7 +51,7 @@ func NewHub() *Hub {
 		register:        make(chan *Client),
 		unregister:      make(chan *Client),
 		broadcast:       make(chan []byte),
-		workflowClients: make(map[uint][]*Client),
+		workflowClients: make(map[uuid.UUID][]*Client),
 	}
 }
 
@@ -77,7 +79,7 @@ func (h *Hub) registerClient(client *Client) {
 	// Add to workflow-specific clients
 	h.workflowClients[client.WorkflowID] = append(h.workflowClients[client.WorkflowID], client)
 
-	log.Printf("Client %s registered for workflow %d", client.ID, client.WorkflowID)
+	log.Printf("Client %s registered for workflow %s", client.ID, client.WorkflowID)
 }
 
 // unregisterClient removes a client from the hub
@@ -99,7 +101,7 @@ func (h *Hub) unregisterClient(client *Client) {
 			}
 		}
 
-		log.Printf("Client %s unregistered from workflow %d", client.ID, client.WorkflowID)
+		log.Printf("Client %s unregistered from workflow %s", client.ID, client.WorkflowID)
 	}
 }
 
@@ -118,7 +120,7 @@ func (h *Hub) broadcastMessage(message []byte) {
 }
 
 // BroadcastToWorkflow sends a message to all clients subscribed to a specific workflow
-func (h *Hub) BroadcastToWorkflow(workflowID uint, message []byte) {
+func (h *Hub) BroadcastToWorkflow(workflowID uuid.UUID, message []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -133,7 +135,7 @@ func (h *Hub) BroadcastToWorkflow(workflowID uint, message []byte) {
 }
 
 // SendEvent sends an event to workflow clients
-func (h *Hub) SendEvent(workflowID uint, event *WSEvent) error {
+func (h *Hub) SendEvent(workflowID uuid.UUID, event *WSEvent) error {
 	message, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -144,7 +146,7 @@ func (h *Hub) SendEvent(workflowID uint, event *WSEvent) error {
 }
 
 // GetWorkflowClients returns the number of clients for a workflow
-func (h *Hub) GetWorkflowClients(workflowID uint) int {
+func (h *Hub) GetWorkflowClients(workflowID uuid.UUID) int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
